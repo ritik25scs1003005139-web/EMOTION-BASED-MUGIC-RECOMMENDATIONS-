@@ -1,0 +1,54 @@
+import cv2
+from deepface import DeepFace
+
+# Map emotion to music genres
+# mood_to_genre.py
+def emotion_to_genre(emotion):
+    """Map detected emotion to a fixed playlist keyword"""
+    mapping = {
+        "angry": ["moodmusic_angry"],
+        "sad": ["moodmusic_sad"],
+        "happy": ["moodmusic_happy"],
+        "surprise": ["moodmusic_surprised"],
+        "fear": ["moodmusic_fear"],
+        "neutral": ["moodmusic_neutral"],
+        "disgust": ["moodmusic_disgust"]
+    }
+    return mapping.get(emotion.lower(), ["moodmusic_neutral"])
+
+# Detect dominant emotion in a frame
+def get_emotion(frame):
+    try:
+        # Analyze smaller frame for speed
+        small_frame = cv2.resize(frame, (0,0), fx=0.5, fy=0.5)
+        result = DeepFace.analyze(small_frame, actions=['emotion'], enforce_detection=False)
+        return result[0]['dominant_emotion']
+    except:
+        return "neutral"
+
+if __name__ == "__main__":
+    cap = cv2.VideoCapture(0)
+    frame_count = 0
+    emotion = "neutral"
+
+    while True:
+        ret, frame = cap.read()
+        frame = cv2.flip(frame, 1)
+        frame_count += 1
+
+        # Analyze every 5th frame
+        if frame_count % 5 == 0:
+            emotion = get_emotion(frame)
+            genres = emotion_to_genre(emotion)
+            print(f"Emotion: {emotion}, Recommended genres: {genres}")
+
+        # Display emotion on frame
+        cv2.putText(frame, f"Emotion: {emotion}", (50, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
+        cv2.imshow("Mood Detection", frame)
+
+        if cv2.waitKey(1) & 0xFF == 27:  # Press ESC to quit
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
